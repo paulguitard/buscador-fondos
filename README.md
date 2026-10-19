@@ -1,36 +1,33 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Búsqueda de fondos
 
-## Getting Started
+Pega la descripción de un proyecto y encuentra convocatorias de financiamiento en Chile e internacionales, usando OpenRouter con búsqueda web.
 
-First, run the development server:
+## Requisitos
+
+- Node.js 20+
+- Clave de [OpenRouter](https://openrouter.ai/keys)
+
+## Configuración
+
+Copia `.env.example` a `.env.local` y define `OPENROUTER_API_KEY`. En Vercel, añade la misma variable en **Project → Settings → Environment Variables** (Production, Preview y Development).
+
+También puedes pegar una API key propia en el engranaje: esa opción pisa la del servidor y se guarda solo en el navegador (`localStorage`), junto con modelos y fuentes.
+
+## Desarrollo
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abre [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Uso
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Elige modelo junto a **Buscar**.
+2. (Opcional) Pega una API key propia en el engranaje si no usas `OPENROUTER_API_KEY`.
+3. Pega la descripción del proyecto (mínimo 20 caracteres).
+4. Pulsa **Buscar**. El panel muestra fichas a medida que llegan.
+5. Usa **Detener** para cancelar.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Los resultados son una orientación: confirma plazos y bases en el sitio oficial de cada fondo.
