@@ -27,6 +27,9 @@ export const fundElegibilidadSchema = z.enum([
   "no_confirmada",
 ]);
 
+/** Si Chile puede postular según la fuente. `no` se oculta en el panel internacional. */
+export const postulableDesdeChileSchema = z.enum(["si", "no", "no_dicho"]);
+
 export const fundCardSchema = z.object({
   nombre: z.string().min(1),
   organismo: z.string().min(1),
@@ -35,6 +38,7 @@ export const fundCardSchema = z.object({
   cierre: z.string().nullable(),
   monto: z.string().nullable(),
   elegibilidad: fundElegibilidadSchema,
+  postulable_desde_chile: postulableDesdeChileSchema.optional(),
   ajuste: z.number().min(0).max(100),
   descripcion: z.string().optional(),
   motivo: z.string().min(1),
@@ -42,6 +46,7 @@ export const fundCardSchema = z.object({
 }).transform((card) => ({
   ...card,
   descripcion: card.descripcion?.trim() || card.motivo,
+  postulable_desde_chile: card.postulable_desde_chile ?? "no_dicho",
 }));
 
 export type FundCard = z.infer<typeof fundCardSchema>;

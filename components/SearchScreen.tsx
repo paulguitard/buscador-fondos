@@ -2,6 +2,10 @@
 
 import { useCallback, useRef, useState } from "react";
 import { FundCard } from "@/components/FundCard";
+import {
+  belongsInChilePanel,
+  belongsInInternationalPanel,
+} from "@/lib/catalog";
 import { localTodayYmd } from "@/lib/dates";
 import {
   sortFundCards,
@@ -79,8 +83,10 @@ export function SearchScreen() {
         id: `${event.group}-${++idRef.current}`,
       };
       if (event.group === "chile") {
+        if (!belongsInChilePanel(event.card)) return;
         setChile((prev) => sortFundCards([...prev, withId]) as CardWithId[]);
       } else {
+        if (!belongsInInternationalPanel(event.card)) return;
         setInternacional((prev) =>
           sortFundCards([...prev, withId]) as CardWithId[],
         );

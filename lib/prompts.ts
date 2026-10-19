@@ -65,7 +65,9 @@ export function buildSearchSystemPrompt(
     return `Eres un investigador de convocatorias de financiamiento en Chile.
 Busca fondos y convocatorias que calcen con el proyecto: abiertas, por abrir y también cerradas (si calzan).
 No priorices dominios, sitios ni organismos. Busca en la web abierta y evalúa cada convocatoria solo por calce con el proyecto (sector, etapa, postulante, territorio, monto).
-Incluye organismos públicos y privados. Usa la búsqueda web tantas veces como puedas (consultas distintas) para reunir el mayor número de convocatorias únicas. No te detengas en las primeras coincidencias.
+Incluye organismos públicos y privados CHILENOS (sede en Chile). Usa la búsqueda web tantas veces como puedas (consultas distintas) para reunir el mayor número de convocatorias únicas. No te detengas en las primeras coincidencias.
+PROHIBIDO incluir fundaciones, agencias o convocatorias de otros países aunque el programa se ejecute en Chile o financie proyectos chilenos. Ejemplos: The Borrow Foundation (Reino Unido), Rotary International, Dental Trade Alliance, BID, CAF, PNUD, UE, NIH, USAID. Esos van SOLO al grupo internacional.
+El criterio es el otorgante: si la sede o el organismo es extranjero, NO es fondo nacional.
 Para cada fondo encontrado, indica nombre, organismo, URL, plazos de cierre con fecha concreta, montos SOLO si aparecen en la fuente, y por qué calza.
 El estado abierta/cerrada debe basarse en la fecha de HOY que te indican, no en tu conocimiento entrenado.
 ${closedRule}
@@ -75,7 +77,8 @@ Cita las páginas que uses. No inventes fechas ni montos.`;
   return `Eres un investigador de fondos INTERNACIONALES (multilaterales, de otros países o de organismos globales) a los que un proyecto desde Chile podría postular.
 No priorices dominios, sitios ni organismos. Busca en la web abierta y evalúa cada convocatoria solo por calce con el proyecto.
 PROHIBIDO incluir fondos nacionales o regionales de Chile: Corfo, ANID, Sercotec, Mineduc, FOSIS, INDAP, GORE, MOP, DGA, Start-Up Chile, fondos.gob.cl u otros ministerios/agencias chilenas. Esos van SOLO al grupo Chile.
-Usa la búsqueda web tantas veces como puedas (consultas distintas) para reunir el mayor número de convocatorias únicas. No te detengas en las primeras coincidencias. Si la página NO dice que Chile (o LAC / países en desarrollo) puede postular, márcalo como no confirmado.
+Usa la búsqueda web tantas veces como puedas (consultas distintas) para reunir el mayor número de convocatorias únicas. No te detengas en las primeras coincidencias.
+DESCARTA un fondo SOLO si la fuente dice de forma explícita que es exclusivo de países/regiones que NO incluyen a Chile (p. ej. solo UE-27, solo EE.UU., solo África, lista de países sin Chile, «not open to Latin America»). Si la geografía no se menciona, INCLÚYELO igual y marca elegibilidad no confirmada.
 El estado abierta/cerrada debe basarse en la fecha de HOY que te indican.
 ${closedRule}
 Cita las páginas. No inventes elegibilidad, plazos ni montos.`;
@@ -89,8 +92,8 @@ export function buildSearchUserPrompt(
 ): string {
   const scope =
     group === "chile"
-      ? "Busca fondos chilenos (públicos y privados) que calcen. Incluye abiertas, por abrir y cerradas."
-      : "Busca SOLO fondos internacionales (no Corfo, ANID, MOP ni otras agencias de Chile). Organismos extranjeros o multilaterales a los que Chile o Latinoamérica puedan postular. Incluye también convocatorias ya cerradas si calzan.";
+      ? "Busca SOLO fondos de organismos chilenos (públicos y privados con sede en Chile). No incluyas fundaciones extranjeras aunque operen en Chile. Incluye abiertas, por abrir y cerradas."
+      : "Busca SOLO fondos internacionales (no Corfo, ANID, MOP ni otras agencias de Chile). Incluye también convocatorias ya cerradas si calzan. Omite las que la fuente reserva de forma explícita a zonas sin Chile; si no lo dice, inclúyelas.";
 
   return `${scope}
 Fecha de HOY: ${todayYmd}. Úsala para etiquetar abierta/cerrada; no uses la fecha para excluir fondos.
@@ -111,8 +114,12 @@ export function buildExtractSystemPrompt(group: "chile" | "internacional"): stri
   const groupRule =
     group === "internacional"
       ? `- Este grupo es SOLO internacional. DESCARTA cualquier fondo de organismos chilenos (Corfo, ANID, Sercotec, MOP, DGA, Mineduc, FOSIS, INDAP, GORE, Start-Up Chile, ministerios de Chile, .gob.cl).
-- BID/IDB, CAF, UE, PNUD, Banco Mundial y similares SÍ son internacionales.`
-      : `- Este grupo es SOLO Chile. Incluye organismos públicos y privados chilenos. DESCARTA fondos de la UE, BID, CAF, PNUD u otros multilaterales.`;
+- BID/IDB, CAF, UE, PNUD, Banco Mundial y similares SÍ son internacionales.
+- Clasifica "postulable_desde_chile": "si" si la fuente abre a Chile, Latinoamérica, LAC, Iberoamérica, países en desarrollo o a cualquier país; "no" SOLO si restringe de forma explícita a una zona/lista que no incluye a Chile; "no_dicho" si no habla de geografía. No infieras un "no".`
+      : `- Este grupo es SOLO Chile: organismos públicos o privados CON SEDE EN CHILE.
+- DESCARTA fundaciones y agencias extranjeras aunque financien trabajo en Chile (The Borrow Foundation / Reino Unido, Rotary International, Dental Trade Alliance, UE, BID, CAF, PNUD, NIH, USAID, etc.).
+- El criterio es el otorgante, no el país donde se ejecuta el programa.
+- En "postulable_desde_chile" usa siempre "si".`;
 
   return `Extraes fichas de fondos a partir de un informe de búsqueda y sus citas URL.
 Responde SOLO con JSON válido, sin markdown.
@@ -127,6 +134,7 @@ Esquema:
       "cierre": string | null,
       "monto": string | null,
       "elegibilidad": "directa" | "punto_nacional" | "socio_extranjero" | "no_confirmada",
+      "postulable_desde_chile": "si" | "no" | "no_dicho",
       "ajuste": number 0-100,
       "descripcion": string (qué es el fondo, según la web; SIN relacionar con el proyecto),
       "motivo": string (por qué calza con ESTE proyecto; 2-4 oraciones para el modal),
@@ -137,7 +145,8 @@ Esquema:
 Reglas:
 - Solo incluye fondos con URL real presente en las citas o en el informe.
 - No inventes plazos, montos ni elegibilidad.
-- Si no hay evidencia de elegibilidad para Chile, usa "no_confirmada".
+- Si no hay evidencia de elegibilidad para Chile, usa "no_confirmada" y "postulable_desde_chile": "no_dicho".
+- "postulable_desde_chile": "no" solo con texto explícito de exclusión geográfica. Si no se dice, "no_dicho" (el fondo se muestra).
 - Si el estado de la convocatoria no está claro, usa "no_confirmado".
 - Copia la fecha de cierre textual en "cierre" (incluye día, mes y año si aparecen).
 - Clasifica "estado" comparando con HOY (te la indican en el mensaje). Si el cierre ya pasó, "cerrada". Si cierra hoy o después y ya está abierta, "abierta".

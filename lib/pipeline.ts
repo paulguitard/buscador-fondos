@@ -1,4 +1,8 @@
-import { isChileanNationalFund } from "./catalog";
+import {
+  belongsInChilePanel,
+  belongsInInternationalPanel,
+  isClosedToChileApplicants,
+} from "./catalog";
 import { applyTodayToCards, localTodayYmd, parseYmd } from "./dates";
 import { resolveModels } from "./models";
 import {
@@ -172,8 +176,12 @@ async function extractCards(
 
   const scoped =
     group === "internacional"
-      ? withValidUrl.filter((card) => !isChileanNationalFund(card))
-      : withValidUrl;
+      ? withValidUrl.filter(
+          (card) =>
+            belongsInInternationalPanel(card) &&
+            !isClosedToChileApplicants(card),
+        )
+      : withValidUrl.filter(belongsInChilePanel);
 
   const dated = applyTodayToCards(scoped, config.todayYmd);
   return sortFundCards(selectTopMatchingFunds(dated));
