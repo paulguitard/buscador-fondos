@@ -308,6 +308,10 @@ export async function runSearchPipeline(
   try {
     profile = await profileProject(input, config, signal);
   } catch (err) {
+    if (signal?.aborted) {
+      emit({ type: "done" });
+      return;
+    }
     const message =
       err instanceof Error ? err.message : "No se pudo leer el proyecto.";
     emit({ type: "error", message });

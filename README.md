@@ -31,3 +31,11 @@ Abre [http://localhost:3000](http://localhost:3000).
 5. Usa **Detener** para cancelar.
 
 Los resultados son una orientación: confirma plazos y bases en el sitio oficial de cada fondo.
+
+## Deploy en Vercel (Hobby)
+
+Con [Fluid Compute](https://vercel.com/docs/fluid-compute) (activo por defecto) Hobby permite **hasta 300 segundos (5 minutos)** por invocación. El límite de 60 s ya no aplica. `/api/search` declara `maxDuration = 300`, que es el techo del plan.
+
+No desactives Fluid Compute en el proyecto: sin Fluid volvería el tope antiguo de 60 s y las búsquedas con web search se cortarían.
+
+Si una búsqueda se acerca a esos 5 minutos, la API cierra el flujo con un mensaje (Fast o Effort Low suelen terminar antes).
