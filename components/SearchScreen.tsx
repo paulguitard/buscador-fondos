@@ -1,25 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { FundCard } from "@/components/FundCard";
-import { ModelPicker } from "@/components/ModelPicker";
-import { SettingsModal } from "@/components/SettingsModal";
-import {
-  loadApiKey,
-  loadEffort,
-  loadFast,
-  loadModelCatalog,
-  loadModelId,
-  loadSearchSources,
-  saveApiKey,
-  saveEffort,
-  saveFast,
-  saveModelCatalog,
-  saveModelId,
-  saveSearchSources,
-} from "@/lib/client-settings";
 import { localTodayYmd } from "@/lib/dates";
-import type { EffortLevel, ModelOption } from "@/lib/models";
 import {
   sortFundCards,
   type FundCard as FundCardType,
@@ -55,15 +38,6 @@ function parseSseChunk(
 }
 
 export function SearchScreen() {
-  const [hydrated, setHydrated] = useState(false);
-  const [apiKey, setApiKey] = useState("");
-  const [modelCatalog, setModelCatalog] = useState<ModelOption[]>([]);
-  const [searchSources, setSearchSources] = useState<string[]>([]);
-  const [modelId, setModelId] = useState("");
-  const [fast, setFast] = useState(false);
-  const [effort, setEffort] = useState<EffortLevel>("medium");
-  const [settingsOpen, setSettingsOpen] = useState(false);
-
   const [descripcion, setDescripcion] = useState("");
   const [organizacion, setOrganizacion] = useState("");
   const [region, setRegion] = useState("");
@@ -84,18 +58,7 @@ export function SearchScreen() {
   const abortRef = useRef<AbortController | null>(null);
   const idRef = useRef(0);
 
-  useEffect(() => {
-    const catalog = loadModelCatalog();
-    setApiKey(loadApiKey());
-    setModelCatalog(catalog);
-    setSearchSources(loadSearchSources());
-    setModelId(loadModelId(catalog));
-    setFast(loadFast());
-    setEffort(loadEffort());
-    setHydrated(true);
-  }, []);
-
-  const canSearch = descripcion.trim().length >= 20 && !running && hydrated;
+  const canSearch = descripcion.trim().length >= 20 && !running;
 
   const resetResults = useCallback(() => {
     setChile([]);
@@ -167,12 +130,6 @@ export function SearchScreen() {
           organizacion: organizacion.trim() || undefined,
           region: region.trim() || undefined,
           monto: monto.trim() || undefined,
-          apiKey: apiKey.trim() || undefined,
-          model: modelId,
-          fast,
-          effort,
-          models: modelCatalog,
-          sources: searchSources,
           hoy: localTodayYmd(),
         }),
         signal: controller.signal,
@@ -221,12 +178,6 @@ export function SearchScreen() {
     organizacion,
     region,
     monto,
-    apiKey,
-    modelId,
-    modelCatalog,
-    searchSources,
-    fast,
-    effort,
     resetResults,
     handleEvent,
   ]);
@@ -243,29 +194,7 @@ export function SearchScreen() {
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(280px,0.9fr)_minmax(0,1.05fr)_minmax(0,1.05fr)]">
         {/* Panel izquierdo: proyecto + controles */}
         <aside className="relative flex max-h-[55dvh] min-h-0 flex-col overflow-hidden border-b border-zinc-200 bg-white lg:max-h-none lg:h-full lg:border-r lg:border-b-0">
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(true)}
-            className="absolute top-3 right-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900"
-            aria-label="Configuración"
-            title="Configuración"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path
-                d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
-                stroke="currentColor"
-                strokeWidth="1.6"
-              />
-              <path
-                d="M19.4 13a7.8 7.8 0 0 0 .05-2l2.02-1.57-1.9-3.3-2.4.9a7.7 7.7 0 0 0-1.73-1L15.1 3H8.9l-.34 2.03a7.7 7.7 0 0 0-1.73 1l-2.4-.9-1.9 3.3L4.55 11a7.8 7.8 0 0 0 0 2l-2.02 1.57 1.9 3.3 2.4-.9c.53.42 1.11.76 1.73 1L8.9 21h6.2l.34-2.03a7.7 7.7 0 0 0 1.73-1l2.4.9 1.9-3.3L19.4 13Z"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-
-          <div className="shrink-0 border-b border-zinc-100 px-5 pt-5 pb-4 pr-14">
+          <div className="shrink-0 border-b border-zinc-100 px-5 pt-5 pb-4">
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-400">
               Financiamiento
             </p>
@@ -370,28 +299,6 @@ export function SearchScreen() {
                   Buscar
                 </button>
               )}
-
-              {hydrated ? (
-                <ModelPicker
-                  models={modelCatalog}
-                  modelId={modelId}
-                  fast={fast}
-                  effort={effort}
-                  disabled={running}
-                  onModelChange={(id) => {
-                    setModelId(id);
-                    saveModelId(id);
-                  }}
-                  onFastChange={(v) => {
-                    setFast(v);
-                    saveFast(v);
-                  }}
-                  onEffortChange={(v) => {
-                    setEffort(v);
-                    saveEffort(v);
-                  }}
-                />
-              ) : null}
             </div>
             <p className="mt-3 text-[11px] leading-relaxed text-zinc-400">
               Confirma plazos y bases en el sitio oficial de cada fondo.
@@ -418,29 +325,6 @@ export function SearchScreen() {
           className="border-t border-zinc-200 lg:border-t-0 lg:border-l"
         />
       </div>
-
-      <SettingsModal
-        open={settingsOpen}
-        initialKey={apiKey}
-        initialModels={modelCatalog}
-        initialSources={searchSources}
-        onClose={() => setSettingsOpen(false)}
-        onSave={({ apiKey: key, models, sources }) => {
-          saveApiKey(key);
-          saveModelCatalog(models);
-          saveSearchSources(sources);
-          setApiKey(key);
-          setModelCatalog(models);
-          setSearchSources(sources);
-          const nextId = models.some((m) => m.id === modelId)
-            ? modelId
-            : models[0].id;
-          setModelId(nextId);
-          saveModelId(nextId);
-          setSettingsOpen(false);
-          setError(null);
-        }}
-      />
     </div>
   );
 }

@@ -1,11 +1,13 @@
 import {
-  CHILE_DOMAINS,
-  CHILE_INSTRUMENTS,
-  INTERNATIONAL_DOMAINS,
-  INTERNATIONAL_INSTRUMENTS,
-} from "./catalog";
-import { sourcesPromptBlock } from "./sources";
-import type { ProjectProfile, SearchRequest } from "./schema";
+  MAX_FUNDS_PER_GROUP,
+  type ProjectProfile,
+  type SearchRequest,
+} from "./schema";
+
+/** Cuánto del informe de búsqueda entra al extractor. */
+export const EXTRACT_REPORT_MAX_CHARS = 24000;
+/** Extracto por cita URL que se pasa al extractor. */
+export const EXTRACT_CITATION_MAX_CHARS = 1500;
 
 /** Umbral: bajo esto se usa el texto completo; sobre esto se resume a ~este largo. */
 export const PROJECT_SUMMARY_CHARS = 2000;
@@ -55,34 +57,27 @@ ${resumenHint}`;
 
 export function buildSearchSystemPrompt(
   group: "chile" | "internacional",
-  sourceUrls: string[] = [],
 ): string {
-  const sources = sourcesPromptBlock(sourceUrls);
   const closedRule =
     "NO descartes un fondo solo porque la convocatoria ya cerró. Inclúyelo igual, con su fecha de cierre; el listado las pondrá abajo.";
 
   if (group === "chile") {
     return `Eres un investigador de convocatorias de financiamiento en Chile.
 Busca fondos y convocatorias que calcen con el proyecto: abiertas, por abrir y también cerradas (si calzan).
-Prioriza sitios oficiales (${CHILE_DOMAINS.join(", ")}) y luego la web abierta.
-Instrumentos de referencia (semillas, no lista cerrada): ${CHILE_INSTRUMENTS.join(", ")}.
-Haz varias búsquedas enfocadas (oficiales, agregadores y web abierta). Incluye organismos públicos y privados.
+No priorices dominios, sitios ni organismos. Busca en la web abierta y evalúa cada convocatoria solo por calce con el proyecto (sector, etapa, postulante, territorio, monto).
+Incluye organismos públicos y privados. Usa la búsqueda web tantas veces como puedas (consultas distintas) para reunir el mayor número de convocatorias únicas. No te detengas en las primeras coincidencias.
 Para cada fondo encontrado, indica nombre, organismo, URL, plazos de cierre con fecha concreta, montos SOLO si aparecen en la fuente, y por qué calza.
 El estado abierta/cerrada debe basarse en la fecha de HOY que te indican, no en tu conocimiento entrenado.
 ${closedRule}
-${sources}
 Cita las páginas que uses. No inventes fechas ni montos.`;
   }
 
-  return `Eres un investigador de fondos INTERNACIONALES (multilaterales, de la UE, de otros países o de organismos globales) a los que un proyecto desde Chile podría postular.
-Busca convocatorias de organismos como BID/IDB, BID Lab, CAF, UE (Horizon, Erasmus), PNUD, Banco Mundial, GCF, UNESCO, IDRC, USAID u otros fondos NO chilenos.
-Prioriza (${INTERNATIONAL_DOMAINS.join(", ")}) y luego la web abierta.
-Instrumentos de referencia: ${INTERNATIONAL_INSTRUMENTS.join(", ")}.
+  return `Eres un investigador de fondos INTERNACIONALES (multilaterales, de otros países o de organismos globales) a los que un proyecto desde Chile podría postular.
+No priorices dominios, sitios ni organismos. Busca en la web abierta y evalúa cada convocatoria solo por calce con el proyecto.
 PROHIBIDO incluir fondos nacionales o regionales de Chile: Corfo, ANID, Sercotec, Mineduc, FOSIS, INDAP, GORE, MOP, DGA, Start-Up Chile, fondos.gob.cl u otros ministerios/agencias chilenas. Esos van SOLO al grupo Chile.
-Haz varias búsquedas enfocadas. Si la página NO dice que Chile (o LAC / países en desarrollo) puede postular, márcalo como no confirmado.
+Usa la búsqueda web tantas veces como puedas (consultas distintas) para reunir el mayor número de convocatorias únicas. No te detengas en las primeras coincidencias. Si la página NO dice que Chile (o LAC / países en desarrollo) puede postular, márcalo como no confirmado.
 El estado abierta/cerrada debe basarse en la fecha de HOY que te indican.
 ${closedRule}
-${sources}
 Cita las páginas. No inventes elegibilidad, plazos ni montos.`;
 }
 
@@ -91,18 +86,14 @@ export function buildSearchUserPrompt(
   profile: ProjectProfile,
   input: SearchRequest,
   todayYmd: string,
-  sourceUrls: string[] = [],
 ): string {
   const scope =
     group === "chile"
       ? "Busca fondos chilenos (públicos y privados) que calcen. Incluye abiertas, por abrir y cerradas."
       : "Busca SOLO fondos internacionales (no Corfo, ANID, MOP ni otras agencias de Chile). Organismos extranjeros o multilaterales a los que Chile o Latinoamérica puedan postular. Incluye también convocatorias ya cerradas si calzan.";
 
-  const sources = sourcesPromptBlock(sourceUrls);
-
   return `${scope}
 Fecha de HOY: ${todayYmd}. Úsala para etiquetar abierta/cerrada; no uses la fecha para excluir fondos.
-${sources ? `\n${sources}\n` : ""}
 
 Perfil del proyecto:
 - Sector: ${profile.sector}
@@ -153,7 +144,9 @@ Reglas:
 - NO omitas un fondo porque esté cerrado: inclúyelo con estado "cerrada".
 - "descripcion" es solo la ficha del fondo según la fuente (objetivo, a quién va, qué financia). NO menciones el proyecto del usuario ahí.
 - "motivo" explica el calce con el proyecto (sector, etapa, postulante, territorio, monto). Eso no va en "descripcion".
-- Omite duplicados. Máximo 12 fondos.
+- Omite duplicados (mismo fondo / misma URL).
+- Extrae TODAS las convocatorias únicas con URL del informe. No recortes a un número pequeño.
+- Si hay más de ${MAX_FUNDS_PER_GROUP}, igual inclúyelas todas con un "ajuste" honesto (0-100). El servidor se quedará con las ${MAX_FUNDS_PER_GROUP} de mayor ajuste.
 ${groupRule}`;
 }
 
@@ -170,7 +163,7 @@ export function buildExtractUserPrompt(
       : citations
           .map(
             (c, i) =>
-              `[${i + 1}] ${c.title ?? "Sin título"}\nURL: ${c.url}\nExtracto: ${(c.content ?? "").slice(0, 800)}`,
+              `[${i + 1}] ${c.title ?? "Sin título"}\nURL: ${c.url}\nExtracto: ${(c.content ?? "").slice(0, EXTRACT_CITATION_MAX_CHARS)}`,
           )
           .join("\n\n");
 
@@ -179,7 +172,7 @@ Fecha de HOY (usar esta, no inventes otra): ${todayYmd}
 Perfil: ${profile.sector} / ${profile.etapa} / ${profile.postulante}
 
 Informe de búsqueda:
-${report.slice(0, 12000)}
+${report.slice(0, EXTRACT_REPORT_MAX_CHARS)}
 
 Citas:
 ${cites}`;

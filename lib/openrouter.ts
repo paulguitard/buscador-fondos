@@ -1,8 +1,4 @@
-import {
-  effortToSearchBudget,
-  type EffortLevel,
-  type WebSearchBudget,
-} from "./models";
+import { SEARCH_BUDGET, type WebSearchBudget } from "./models";
 
 export type ChatMessage = {
   role: "system" | "user" | "assistant";
@@ -28,11 +24,6 @@ type Annotation = {
   url_citation?: UrlCitation;
 };
 
-export type OpenRouterContext = {
-  apiKey: string;
-  effort?: EffortLevel;
-};
-
 function buildWebSearchTool(budget: WebSearchBudget) {
   return {
     type: "openrouter:web_search" as const,
@@ -46,14 +37,10 @@ function buildWebSearchTool(budget: WebSearchBudget) {
   };
 }
 
-export function resolveApiKey(requestKey?: string | null): string {
-  const fromRequest = requestKey?.trim();
-  if (fromRequest) return fromRequest;
+export function resolveApiKey(): string {
   const fromEnv = process.env.OPENROUTER_API_KEY?.trim();
   if (fromEnv) return fromEnv;
-  throw new Error(
-    "Falta OPENROUTER_API_KEY en el entorno del servidor (o pégala en Configuración).",
-  );
+  throw new Error("Falta OPENROUTER_API_KEY en el entorno del servidor.");
 }
 
 function extractJsonText(content: string): string {
@@ -105,7 +92,6 @@ export async function chatCompletion(options: {
   model: string;
   messages: ChatMessage[];
   useWebSearch?: boolean;
-  effort?: EffortLevel;
   temperature?: number;
   signal?: AbortSignal;
 }): Promise<ChatCompletionResult> {
@@ -113,11 +99,11 @@ export async function chatCompletion(options: {
     model: options.model,
     messages: options.messages,
     temperature: options.temperature ?? 0.2,
+    reasoning: { effort: "high" },
   };
 
   if (options.useWebSearch) {
-    const budget = effortToSearchBudget(options.effort ?? "medium");
-    body.tools = [buildWebSearchTool(budget)];
+    body.tools = [buildWebSearchTool(SEARCH_BUDGET)];
   }
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {

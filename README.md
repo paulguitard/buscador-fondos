@@ -11,12 +11,11 @@ Pega la descripción de un proyecto y encuentra convocatorias de financiamiento 
 
 Copia `.env.example` a `.env.local` y define:
 
-- `OPENROUTER_API_KEY` — clave de OpenRouter
-- `OPENROUTER_MODEL` — slug por defecto (p. ej. `deepseek/deepseek-v4.1-flash-1017`)
+- `OPENROUTER_API_KEY` — clave de OpenRouter (obligatoria)
 
-En Vercel, añade las mismas variables en **Project → Settings → Environment Variables** (Production, Preview y Development).
+El modelo está fijo en código: `deepseek/deepseek-v4.1-flash`.
 
-También puedes pegar una API key o cambiar el modelo en el engranaje: eso pisa el valor del servidor y se guarda solo en el navegador (`localStorage`), junto con el catálogo y las fuentes.
+En Vercel, añade la misma variable en **Project → Settings → Environment Variables** (Production, Preview y Development).
 
 ## Desarrollo
 
@@ -29,11 +28,9 @@ Abre [http://localhost:3000](http://localhost:3000).
 
 ## Uso
 
-1. Elige modelo junto a **Buscar**.
-2. (Opcional) Pega una API key propia en el engranaje si no usas `OPENROUTER_API_KEY`.
-3. Pega la descripción del proyecto (mínimo 20 caracteres).
-4. Pulsa **Buscar**. El panel muestra fichas a medida que llegan.
-5. Usa **Detener** para cancelar.
+1. Pega la descripción del proyecto (mínimo 20 caracteres).
+2. Pulsa **Buscar**. El panel muestra fichas a medida que llegan.
+3. Usa **Detener** para cancelar.
 
 Los resultados son una orientación: confirma plazos y bases en el sitio oficial de cada fondo.
 
@@ -43,4 +40,4 @@ Con [Fluid Compute](https://vercel.com/docs/fluid-compute) (activo por defecto) 
 
 No desactives Fluid Compute en el proyecto: sin Fluid volvería el tope antiguo de 60 s y las búsquedas con web search se cortarían.
 
-Si una búsqueda se acerca a esos 5 minutos, la API cierra el flujo con un mensaje (Fast o Effort Low suelen terminar antes).
+Si una búsqueda se acerca a esos 5 minutos, la API cierra el flujo con un mensaje.

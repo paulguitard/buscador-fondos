@@ -1,13 +1,6 @@
 import { isChileanNationalFund } from "./catalog";
 import { applyTodayToCards, localTodayYmd, parseYmd } from "./dates";
-import { normalizeSourceList } from "./sources";
-import {
-  defaultModelId,
-  normalizeModelOption,
-  resolveModels,
-  type EffortLevel,
-  type ModelOption,
-} from "./models";
+import { resolveModels } from "./models";
 import {
   chatCompletion,
   parseJsonFromContent,
@@ -27,6 +20,7 @@ import {
 import {
   fundCardsResponseSchema,
   projectProfileSchema,
+  selectTopMatchingFunds,
   sortFundCards,
   type FundCard,
   type FundGroup,
@@ -41,32 +35,16 @@ type PipelineConfig = {
   apiKey: string;
   mainModel: string;
   profileModel: string;
-  effort: EffortLevel;
   todayYmd: string;
-  sources: string[];
 };
 
-function catalogFromRequest(input: SearchRequest): ModelOption[] {
-  if (!input.models?.length) return [];
-  return input.models
-    .map((m) => normalizeModelOption(m))
-    .filter((m): m is ModelOption => m !== null);
-}
-
 function configFromRequest(input: SearchRequest): PipelineConfig {
-  const catalog = catalogFromRequest(input);
-  const resolved = resolveModels(
-    input.model?.trim() || defaultModelId(),
-    Boolean(input.fast),
-    catalog,
-  );
+  const resolved = resolveModels();
   return {
-    apiKey: resolveApiKey(input.apiKey),
+    apiKey: resolveApiKey(),
     mainModel: resolved.mainModel,
     profileModel: resolved.profileModel,
-    effort: input.effort ?? "medium",
     todayYmd: parseYmd(input.hoy ?? "") ?? localTodayYmd(),
-    sources: normalizeSourceList(input.sources ?? []),
   };
 }
 
@@ -197,7 +175,8 @@ async function extractCards(
       ? withValidUrl.filter((card) => !isChileanNationalFund(card))
       : withValidUrl;
 
-  return sortFundCards(applyTodayToCards(scoped, config.todayYmd));
+  const dated = applyTodayToCards(scoped, config.todayYmd);
+  return sortFundCards(selectTopMatchingFunds(dated));
 }
 
 async function searchGroup(
@@ -219,7 +198,7 @@ async function searchGroup(
       apiKey: config.apiKey,
       model: config.mainModel,
       messages: [
-        { role: "system", content: buildSearchSystemPrompt(group, config.sources) },
+        { role: "system", content: buildSearchSystemPrompt(group) },
         {
           role: "user",
           content: buildSearchUserPrompt(
@@ -227,12 +206,10 @@ async function searchGroup(
             profile,
             input,
             config.todayYmd,
-            config.sources,
           ),
         },
       ],
       useWebSearch: true,
-      effort: config.effort,
       temperature: 0.2,
       signal,
     });

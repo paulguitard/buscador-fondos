@@ -46,16 +46,10 @@ export const fundCardSchema = z.object({
 
 export type FundCard = z.infer<typeof fundCardSchema>;
 
+export const MAX_FUNDS_PER_GROUP = 20;
+
 export const fundCardsResponseSchema = z.object({
   fondos: z.array(fundCardSchema),
-});
-
-export const effortSchema = z.enum(["low", "medium", "high"]);
-
-export const modelOptionSchema = z.object({
-  id: z.string().min(3).max(120),
-  label: z.string().max(120).optional(),
-  fastId: z.string().min(3).max(120).optional(),
 });
 
 export const searchRequestSchema = z.object({
@@ -63,12 +57,6 @@ export const searchRequestSchema = z.object({
   organizacion: z.string().max(200).optional(),
   region: z.string().max(120).optional(),
   monto: z.string().max(120).optional(),
-  apiKey: z.string().max(500).optional(),
-  model: z.string().min(3).max(120).optional(),
-  fast: z.boolean().optional(),
-  effort: effortSchema.optional(),
-  models: z.array(modelOptionSchema).max(40).optional(),
-  sources: z.array(z.string().url().max(500)).max(40).optional(),
   /** Fecha local del navegador (YYYY-MM-DD) para clasificar convocatorias abiertas. */
   hoy: z
     .string()
@@ -127,4 +115,16 @@ export function sortFundCards(cards: FundCard[]): FundCard[] {
     if (byEstado !== 0) return byEstado;
     return b.ajuste - a.ajuste;
   });
+}
+
+/** Si hay más del tope, deja las de mayor `ajuste`. Si hay menos, las deja todas. */
+export function selectTopMatchingFunds(cards: FundCard[]): FundCard[] {
+  if (cards.length <= MAX_FUNDS_PER_GROUP) return cards;
+  return [...cards]
+    .sort((a, b) => {
+      const byAjuste = b.ajuste - a.ajuste;
+      if (byAjuste !== 0) return byAjuste;
+      return a.nombre.localeCompare(b.nombre, "es");
+    })
+    .slice(0, MAX_FUNDS_PER_GROUP);
 }

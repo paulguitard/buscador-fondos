@@ -35,14 +35,14 @@ export async function POST(request: Request) {
   }
 
   try {
-    resolveApiKey(parsed.data.apiKey);
+    resolveApiKey();
   } catch (err) {
     return Response.json(
       {
         error:
           err instanceof Error
             ? err.message
-            : "Falta la API key de OpenRouter. Ábrela en Configuración.",
+            : "Falta OPENROUTER_API_KEY en el entorno del servidor.",
       },
       { status: 401 },
     );
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
           emit({
             type: "error",
             message:
-              "La búsqueda llegó al límite de 5 minutos de Vercel Hobby. Prueba Fast o Effort Low.",
+              "La búsqueda llegó al límite de 5 minutos de Vercel Hobby. Inténtalo de nuevo o acorta la descripción.",
           });
           emit({ type: "group_done", group: "chile", count: 0 });
           emit({ type: "group_done", group: "internacional", count: 0 });
