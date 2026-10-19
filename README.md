@@ -9,9 +9,14 @@ Pega la descripción de un proyecto y encuentra convocatorias de financiamiento 
 
 ## Configuración
 
-Copia `.env.example` a `.env.local` y define `OPENROUTER_API_KEY`. En Vercel, añade la misma variable en **Project → Settings → Environment Variables** (Production, Preview y Development).
+Copia `.env.example` a `.env.local` y define:
 
-También puedes pegar una API key propia en el engranaje: esa opción pisa la del servidor y se guarda solo en el navegador (`localStorage`), junto con modelos y fuentes.
+- `OPENROUTER_API_KEY` — clave de OpenRouter
+- `OPENROUTER_MODEL` — slug por defecto (p. ej. `deepseek/deepseek-v4.1-flash-1017`)
+
+En Vercel, añade las mismas variables en **Project → Settings → Environment Variables** (Production, Preview y Development).
+
+También puedes pegar una API key o cambiar el modelo en el engranaje: eso pisa el valor del servidor y se guarda solo en el navegador (`localStorage`), junto con el catálogo y las fuentes.
 
 ## Desarrollo
 

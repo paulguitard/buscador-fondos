@@ -2,6 +2,7 @@ import { isChileanNationalFund } from "./catalog";
 import { applyTodayToCards, localTodayYmd, parseYmd } from "./dates";
 import { normalizeSourceList } from "./sources";
 import {
+  defaultModelId,
   normalizeModelOption,
   resolveModels,
   type EffortLevel,
@@ -55,7 +56,7 @@ function catalogFromRequest(input: SearchRequest): ModelOption[] {
 function configFromRequest(input: SearchRequest): PipelineConfig {
   const catalog = catalogFromRequest(input);
   const resolved = resolveModels(
-    input.model ?? "",
+    input.model?.trim() || defaultModelId(),
     Boolean(input.fast),
     catalog,
   );

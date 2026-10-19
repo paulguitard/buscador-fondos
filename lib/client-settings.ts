@@ -1,7 +1,7 @@
 import {
   DEFAULT_EFFORT,
-  DEFAULT_MODEL_ID,
   DEFAULT_MODELS,
+  FALLBACK_MODEL_ID,
   normalizeModelOption,
   type EffortLevel,
   type ModelOption,
@@ -67,10 +67,10 @@ export function saveModelCatalog(models: ModelOption[]): void {
 
 export function loadModelId(catalog?: ModelOption[]): string {
   const list = catalog ?? loadModelCatalog();
-  if (!canUseStorage()) return list[0]?.id ?? DEFAULT_MODEL_ID;
+  if (!canUseStorage()) return list[0]?.id ?? FALLBACK_MODEL_ID;
   const stored = localStorage.getItem(KEY_MODEL)?.trim();
   if (stored && list.some((m) => m.id === stored)) return stored;
-  return list[0]?.id ?? DEFAULT_MODEL_ID;
+  return list[0]?.id ?? FALLBACK_MODEL_ID;
 }
 
 export function saveModelId(id: string): void {

@@ -7,8 +7,25 @@ export type ModelOption = {
   fastId: string;
 };
 
+/** Fallback si no hay OPENROUTER_MODEL ni catálogo configurado. */
+export const FALLBACK_MODEL_ID = "deepseek/deepseek-v4.1-flash-1017";
+
+/** Slug por defecto: OPENROUTER_MODEL en el servidor, o el fallback. */
+export function defaultModelId(): string {
+  if (typeof process !== "undefined") {
+    const fromEnv = process.env.OPENROUTER_MODEL?.trim();
+    if (fromEnv?.includes("/")) return fromEnv;
+  }
+  return FALLBACK_MODEL_ID;
+}
+
 /** Catálogo por defecto si el usuario aún no configuró modelos. */
 export const DEFAULT_MODELS: ModelOption[] = [
+  {
+    id: FALLBACK_MODEL_ID,
+    label: "DeepSeek V4.1 Flash",
+    fastId: FALLBACK_MODEL_ID,
+  },
   {
     id: "anthropic/claude-sonnet-4.6",
     label: "Claude Sonnet 4.6",
@@ -29,7 +46,7 @@ export const DEFAULT_MODELS: ModelOption[] = [
 /** @deprecated Usar DEFAULT_MODELS o el catálogo del usuario */
 export const MODELS = DEFAULT_MODELS;
 
-export const DEFAULT_MODEL_ID = DEFAULT_MODELS[0].id;
+export const DEFAULT_MODEL_ID = FALLBACK_MODEL_ID;
 export const DEFAULT_EFFORT: EffortLevel = "medium";
 
 export const EFFORT_LABELS: Record<EffortLevel, string> = {
@@ -139,7 +156,13 @@ export function resolveModels(
   catalog: ModelOption[] = DEFAULT_MODELS,
 ): { mainModel: string; profileModel: string; displayLabel: string } {
   const list = catalog.length > 0 ? catalog : DEFAULT_MODELS;
-  const option = list.find((m) => m.id === modelId) ?? list[0];
+  const requested = modelId.trim() || defaultModelId();
+  const fromCatalog = list.find((m) => m.id === requested);
+  const option =
+    fromCatalog ??
+    normalizeModelOption({ id: requested }) ??
+    list[0] ??
+    normalizeModelOption({ id: FALLBACK_MODEL_ID })!;
   const fastId = option.fastId || option.id;
   return {
     mainModel: fast ? fastId : option.id,
