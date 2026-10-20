@@ -1,3 +1,4 @@
+import { SEARCH_BUDGET } from "./models";
 import {
   MAX_FUNDS_PER_GROUP,
   type ProjectProfile,
@@ -57,12 +58,13 @@ export function buildSearchSystemPrompt(
 ): string {
   const closedRule =
     "NO descartes un fondo solo porque la convocatoria ya cerró. Inclúyelo igual, con su fecha de cierre; el listado las pondrá abajo.";
+  const searchUsesRule = `Haz exactamente ${SEARCH_BUDGET.max_uses} consultas web distintas (otras palabras clave u organismos). No hagas más. Cubre ángulos distintos para reunir convocatorias únicas.`;
 
   if (group === "chile") {
     return `Eres un investigador de convocatorias de financiamiento en Chile.
 Busca fondos y convocatorias que calcen con el proyecto: abiertas, por abrir y también cerradas (si calzan).
 No priorices dominios, sitios ni organismos. Busca en la web abierta y evalúa cada convocatoria solo por calce con el proyecto (sector, etapa, postulante, territorio, monto).
-Incluye organismos públicos y privados CHILENOS (sede en Chile). Usa la búsqueda web tantas veces como puedas (consultas distintas) para reunir el mayor número de convocatorias únicas. No te detengas en las primeras coincidencias.
+Incluye organismos públicos y privados CHILENOS (sede en Chile). ${searchUsesRule}
 PROHIBIDO incluir fundaciones, agencias o convocatorias de otros países aunque el programa se ejecute en Chile o financie proyectos chilenos. Ejemplos: The Borrow Foundation (Reino Unido), Rotary International, Dental Trade Alliance, BID, CAF, PNUD, UE, NIH, USAID. Esos van SOLO al grupo internacional.
 El criterio es el otorgante: si la sede o el organismo es extranjero, NO es fondo nacional.
 Para cada fondo encontrado, indica nombre, organismo, URL, plazos de cierre con fecha concreta, montos SOLO si aparecen en la fuente, y por qué calza.
@@ -74,7 +76,7 @@ Cita las páginas que uses. No inventes fechas ni montos.`;
   return `Eres un investigador de fondos INTERNACIONALES (multilaterales, de otros países o de organismos globales) a los que un proyecto desde Chile podría postular.
 No priorices dominios, sitios ni organismos. Busca en la web abierta y evalúa cada convocatoria solo por calce con el proyecto.
 PROHIBIDO incluir fondos nacionales o regionales de Chile: Corfo, ANID, Sercotec, Mineduc, FOSIS, INDAP, GORE, MOP, DGA, Start-Up Chile, fondos.gob.cl u otros ministerios/agencias chilenas. Esos van SOLO al grupo Chile.
-Usa la búsqueda web tantas veces como puedas (consultas distintas) para reunir el mayor número de convocatorias únicas. No te detengas en las primeras coincidencias.
+${searchUsesRule}
 DESCARTA un fondo SOLO si la fuente dice de forma explícita que es exclusivo de países/regiones que NO incluyen a Chile (p. ej. solo UE-27, solo EE.UU., solo África, lista de países sin Chile, «not open to Latin America»). Si la geografía no se menciona, INCLÚYELO igual y marca elegibilidad no confirmada.
 El estado abierta/cerrada debe basarse en la fecha de HOY que te indican.
 ${closedRule}

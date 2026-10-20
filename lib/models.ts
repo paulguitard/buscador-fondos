@@ -12,14 +12,14 @@ export type WebSearchBudget = {
 };
 
 /**
- * Tope de Exa/OpenRouter: 25 resultados por llamada.
- * max_total_results y max_uses altos para cubrir más consultas distintas.
+ * 3 consultas × 10 resultados: Exa cobra $0.007 por consulta con 10 resultados
+ * incluidos; del 11 en adelante suma $0.001 c/u. El panel muestra máx. 20 fichas.
  * search_context_size "low" (~5k caracteres/resultado): el extractor ya recorta citas.
  */
 export const SEARCH_BUDGET: WebSearchBudget = {
-  max_results: 25,
-  max_total_results: 50,
-  max_uses: 10,
+  max_results: 10,
+  max_total_results: 30,
+  max_uses: 3,
   search_context_size: "low",
 };
 
