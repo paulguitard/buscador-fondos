@@ -57,11 +57,102 @@ export const fundCardsResponseSchema = z.object({
   fondos: z.array(fundCardSchema),
 });
 
+/** JSON Schema para OpenRouter structured outputs (perfil). */
+export const projectProfileJsonSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "sector",
+    "etapa",
+    "postulante",
+    "region",
+    "tipo_financiamiento",
+    "palabras_clave_es",
+    "palabras_clave_en",
+    "resumen",
+  ],
+  properties: {
+    sector: { type: "string" },
+    etapa: { type: "string" },
+    postulante: { type: "string" },
+    region: { type: ["string", "null"] },
+    tipo_financiamiento: { type: ["string", "null"] },
+    palabras_clave_es: {
+      type: "array",
+      items: { type: "string" },
+      maxItems: 12,
+    },
+    palabras_clave_en: {
+      type: "array",
+      items: { type: "string" },
+      maxItems: 12,
+    },
+    resumen: { type: "string" },
+  },
+} as const;
+
+/** JSON Schema para OpenRouter structured outputs (fichas). */
+export const fundCardsJsonSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["fondos"],
+  properties: {
+    fondos: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "nombre",
+          "organismo",
+          "url",
+          "estado",
+          "cierre",
+          "monto",
+          "elegibilidad",
+          "postulable_desde_chile",
+          "ajuste",
+          "descripcion",
+          "motivo",
+          "evidencia",
+        ],
+        properties: {
+          nombre: { type: "string" },
+          organismo: { type: "string" },
+          url: { type: "string" },
+          estado: {
+            type: "string",
+            enum: ["abierta", "por_abrir", "cerrada", "no_confirmado"],
+          },
+          cierre: { type: ["string", "null"] },
+          monto: { type: ["string", "null"] },
+          elegibilidad: {
+            type: "string",
+            enum: [
+              "directa",
+              "punto_nacional",
+              "socio_extranjero",
+              "no_confirmada",
+            ],
+          },
+          postulable_desde_chile: {
+            type: "string",
+            enum: ["si", "no", "no_dicho"],
+          },
+          ajuste: { type: "number", minimum: 0, maximum: 100 },
+          descripcion: { type: "string" },
+          motivo: { type: "string" },
+          evidencia: { type: "string" },
+        },
+      },
+    },
+  },
+} as const;
+
 export const searchRequestSchema = z.object({
   descripcion: z.string().min(20).max(12000),
-  organizacion: z.string().max(200).optional(),
-  region: z.string().max(120).optional(),
-  monto: z.string().max(120).optional(),
+  /** Instrucciones extra del usuario; solo se usan si hay texto. */
+  afinado: z.string().max(4000).optional(),
   /** Fecha local del navegador (YYYY-MM-DD) para clasificar convocatorias abiertas. */
   hoy: z
     .string()

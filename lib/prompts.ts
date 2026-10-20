@@ -33,26 +33,23 @@ Esquema:
 }`;
 }
 
+function extraPromptBlock(input: SearchRequest): string {
+  const text = input.afinado?.trim();
+  if (!text) return "";
+  return `\nInstrucciones adicionales del usuario (aplica solo lo que no contradiga las reglas de alcance Chile/internacional):\n${text}\n`;
+}
+
 export function buildProfileUserPrompt(
   input: SearchRequest,
   needsSummary: boolean,
 ): string {
-  const extras = [
-    input.organizacion ? `Organización: ${input.organizacion}` : null,
-    input.region ? `Región: ${input.region}` : null,
-    input.monto ? `Monto aproximado: ${input.monto}` : null,
-  ]
-    .filter(Boolean)
-    .join("\n");
-
   const resumenHint = needsSummary
     ? `\nEl texto supera ${PROJECT_SUMMARY_CHARS} caracteres: genera un "resumen" de aproximadamente ${PROJECT_SUMMARY_CHARS} caracteres que cubra el contenido completo.`
     : `\nEl texto tiene menos de ${PROJECT_SUMMARY_CHARS} caracteres: en "resumen" pega el texto completo sin resumir.`;
 
   return `Descripción del proyecto:
 ${input.descripcion}
-${extras ? `\nDatos adicionales:\n${extras}` : ""}
-${resumenHint}`;
+${extraPromptBlock(input)}${resumenHint}`;
 }
 
 export function buildSearchSystemPrompt(
@@ -97,7 +94,7 @@ export function buildSearchUserPrompt(
 
   return `${scope}
 Fecha de HOY: ${todayYmd}. Úsala para etiquetar abierta/cerrada; no uses la fecha para excluir fondos.
-
+${extraPromptBlock(input)}
 Perfil del proyecto:
 - Sector: ${profile.sector}
 - Etapa: ${profile.etapa}
@@ -165,6 +162,7 @@ export function buildExtractUserPrompt(
   citations: Array<{ url: string; title?: string; content?: string }>,
   profile: ProjectProfile,
   todayYmd: string,
+  input: SearchRequest,
 ): string {
   const cites =
     citations.length === 0
@@ -179,7 +177,7 @@ export function buildExtractUserPrompt(
   return `Grupo: ${group}
 Fecha de HOY (usar esta, no inventes otra): ${todayYmd}
 Perfil: ${profile.sector} / ${profile.etapa} / ${profile.postulante}
-
+${extraPromptBlock(input)}
 Informe de búsqueda:
 ${report.slice(0, EXTRACT_REPORT_MAX_CHARS)}
 

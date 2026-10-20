@@ -1,4 +1,4 @@
-import { SEARCH_BUDGET, type WebSearchBudget } from "./models";
+import { APP_PROVIDER_ID, SEARCH_BUDGET, type WebSearchBudget } from "./models";
 
 export type ChatMessage = {
   role: "system" | "user" | "assistant";
@@ -87,23 +87,49 @@ function collectCitations(message: {
   return [...urls.values()];
 }
 
+export type ReasoningOption =
+  | { enabled: false }
+  | { effort: "low" | "medium" | "high" };
+
+export type JsonSchemaFormat = {
+  name: string;
+  schema: object;
+};
+
 export async function chatCompletion(options: {
   apiKey: string;
   model: string;
   messages: ChatMessage[];
   useWebSearch?: boolean;
   temperature?: number;
+  reasoning?: ReasoningOption;
+  jsonSchema?: JsonSchemaFormat;
   signal?: AbortSignal;
 }): Promise<ChatCompletionResult> {
   const body: Record<string, unknown> = {
     model: options.model,
     messages: options.messages,
     temperature: options.temperature ?? 0.2,
-    reasoning: { effort: "high" },
+    reasoning: options.reasoning ?? { enabled: false },
+    provider: {
+      order: [APP_PROVIDER_ID],
+      allow_fallbacks: false,
+    },
   };
 
   if (options.useWebSearch) {
     body.tools = [buildWebSearchTool(SEARCH_BUDGET)];
+  }
+
+  if (options.jsonSchema) {
+    body.response_format = {
+      type: "json_schema",
+      json_schema: {
+        name: options.jsonSchema.name,
+        strict: true,
+        schema: options.jsonSchema.schema,
+      },
+    };
   }
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {

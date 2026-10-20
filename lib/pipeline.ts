@@ -9,7 +9,6 @@ import {
   chatCompletion,
   parseJsonFromContent,
   resolveApiKey,
-  type ChatMessage,
   type UrlCitation,
 } from "./openrouter";
 import {
@@ -22,7 +21,9 @@ import {
   buildSearchUserPrompt,
 } from "./prompts";
 import {
+  fundCardsJsonSchema,
   fundCardsResponseSchema,
+  projectProfileJsonSchema,
   projectProfileSchema,
   selectTopMatchingFunds,
   sortFundCards,
@@ -68,39 +69,21 @@ async function profileProject(
       { role: "user", content: buildProfileUserPrompt(input, needsSummary) },
     ],
     temperature: 0.1,
+    reasoning: { enabled: false },
+    jsonSchema: {
+      name: "project_profile",
+      schema: projectProfileJsonSchema,
+    },
     signal,
   });
 
   const parsed = projectProfileSchema.safeParse(parseJsonFromContent(result.content));
-  if (parsed.success) {
-    return needsSummary
-      ? parsed.data
-      : { ...parsed.data, resumen: fullText };
-  }
-
-  const retry = await chatCompletion({
-    apiKey: config.apiKey,
-    model: config.profileModel,
-    messages: [
-      { role: "system", content: buildProfileSystemPrompt(needsSummary) },
-      { role: "user", content: buildProfileUserPrompt(input, needsSummary) },
-      { role: "assistant", content: result.content },
-      {
-        role: "user",
-        content: `El JSON no validó: ${parsed.error.message}. Devuelve SOLO el JSON corregido.`,
-      },
-    ],
-    temperature: 0,
-    signal,
-  });
-
-  const retried = projectProfileSchema.safeParse(parseJsonFromContent(retry.content));
-  if (!retried.success) {
+  if (!parsed.success) {
     throw new Error("No se pudo perfilar el proyecto. Revisa la descripción.");
   }
   return needsSummary
-    ? retried.data
-    : { ...retried.data, resumen: fullText };
+    ? parsed.data
+    : { ...parsed.data, resumen: fullText };
 }
 
 async function extractCards(
@@ -108,11 +91,14 @@ async function extractCards(
   report: string,
   citations: UrlCitation[],
   profile: ProjectProfile,
+  input: SearchRequest,
   config: PipelineConfig,
   signal?: AbortSignal,
 ): Promise<FundCard[]> {
-  const attempt = async (previous?: string, errorMsg?: string) => {
-    const messages: ChatMessage[] = [
+  const result = await chatCompletion({
+    apiKey: config.apiKey,
+    model: config.mainModel,
+    messages: [
       { role: "system", content: buildExtractSystemPrompt(group) },
       {
         role: "user",
@@ -122,36 +108,22 @@ async function extractCards(
           citations,
           profile,
           config.todayYmd,
+          input,
         ),
       },
-    ];
+    ],
+    temperature: 0,
+    reasoning: { enabled: false },
+    jsonSchema: {
+      name: "fund_cards",
+      schema: fundCardsJsonSchema,
+    },
+    signal,
+  });
 
-    if (previous && errorMsg) {
-      messages.push(
-        { role: "assistant", content: previous },
-        {
-          role: "user",
-          content: `El JSON no validó: ${errorMsg}. Devuelve SOLO el JSON corregido. Omite fichas sin URL válida.`,
-        },
-      );
-    }
-
-    return chatCompletion({
-      apiKey: config.apiKey,
-      model: config.mainModel,
-      messages,
-      temperature: 0,
-      signal,
-    });
-  };
-
-  const first = await attempt();
-  let parsed = fundCardsResponseSchema.safeParse(parseJsonFromContent(first.content));
-
-  if (!parsed.success) {
-    const second = await attempt(first.content, parsed.error.message);
-    parsed = fundCardsResponseSchema.safeParse(parseJsonFromContent(second.content));
-  }
+  const parsed = fundCardsResponseSchema.safeParse(
+    parseJsonFromContent(result.content),
+  );
 
   if (!parsed.success) {
     throw new Error(`No se pudieron estructurar fondos (${group}).`);
@@ -219,6 +191,7 @@ async function searchGroup(
       ],
       useWebSearch: true,
       temperature: 0.2,
+      reasoning: { effort: "medium" },
       signal,
     });
 
@@ -245,6 +218,7 @@ async function searchGroup(
       search.content,
       search.citations,
       profile,
+      input,
       config,
       signal,
     );

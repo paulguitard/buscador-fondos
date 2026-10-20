@@ -43,10 +43,7 @@ function parseSseChunk(
 
 export function SearchScreen() {
   const [descripcion, setDescripcion] = useState("");
-  const [organizacion, setOrganizacion] = useState("");
-  const [region, setRegion] = useState("");
-  const [monto, setMonto] = useState("");
-  const [afinOpen, setAfinOpen] = useState(false);
+  const [afinado, setAfinado] = useState("");
 
   const [running, setRunning] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -133,9 +130,7 @@ export function SearchScreen() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           descripcion: descripcion.trim(),
-          organizacion: organizacion.trim() || undefined,
-          region: region.trim() || undefined,
-          monto: monto.trim() || undefined,
+          afinado: afinado.trim() || undefined,
           hoy: localTodayYmd(),
         }),
         signal: controller.signal,
@@ -181,9 +176,7 @@ export function SearchScreen() {
     }
   }, [
     descripcion,
-    organizacion,
-    region,
-    monto,
+    afinado,
     resetResults,
     handleEvent,
   ]);
@@ -226,41 +219,21 @@ export function SearchScreen() {
             />
 
             <div>
-              <button
-                type="button"
-                onClick={() => setAfinOpen((v) => !v)}
-                className="text-sm text-zinc-500 transition hover:text-zinc-800"
+              <label
+                htmlFor="afinado"
+                className="mb-2 block text-sm font-medium text-zinc-700"
               >
-                {afinOpen ? "Ocultar afinado" : "Afinar búsqueda (opcional)"}
-              </button>
-              {afinOpen ? (
-                <div className="mt-2 grid gap-2">
-                  <input
-                    type="text"
-                    value={organizacion}
-                    onChange={(e) => setOrganizacion(e.target.value)}
-                    placeholder="Tipo de organización"
-                    disabled={running}
-                    className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100"
-                  />
-                  <input
-                    type="text"
-                    value={region}
-                    onChange={(e) => setRegion(e.target.value)}
-                    placeholder="Región"
-                    disabled={running}
-                    className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100"
-                  />
-                  <input
-                    type="text"
-                    value={monto}
-                    onChange={(e) => setMonto(e.target.value)}
-                    placeholder="Monto aproximado"
-                    disabled={running}
-                    className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100"
-                  />
-                </div>
-              ) : null}
+                Instrucciones adicionales para la búsqueda
+              </label>
+              <textarea
+                id="afinado"
+                value={afinado}
+                onChange={(e) => setAfinado(e.target.value)}
+                placeholder="Opcional: prioriza ciertos fondos, excluye otros, indica tipo de organización, región, monto u otras instrucciones para la búsqueda."
+                disabled={running}
+                rows={4}
+                className="w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm leading-relaxed text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 disabled:opacity-70"
+              />
             </div>
 
             {(running || status || error) && (
